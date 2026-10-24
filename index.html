@@ -1,956 +1,565 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGH HDU | Clinical Audit Runner</title>
-    <style>
-        :root {
-            --hosp-primary: #003366;       /* Deep Hospital Navy */
-            --hosp-secondary: #0056b3;     /* Clinical Blue */
-            --hosp-accent: #28a745;        /* Compliance Green */
-            --hosp-danger: #dc3545;        /* Alert Red */
-            --hosp-warning: #ffc107;       /* Progress Yellow */
-            --hosp-bg: #f0f2f5;            /* Standard App BG */
-            --card-bg: #ffffff;
-            --border-color: #ced4da;
-            --text-dark: #212529;
-            --text-muted: #6c757d;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinical Audit Runner - Bedside Logging</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background-color: #f8f9fa; color: #212529; }
+    .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .header { text-align: center; margin-bottom: 25px; }
+    .header img { width: 120px; height: auto; margin-bottom: 10px; border-radius: 50%; }
+    h1 { color: #007bff; font-size: 1.8em; margin-bottom: 5px; margin-top: 0; }
+    h2 { color: #6c757d; font-size: 1.1em; font-weight: normal; margin-top: 0; }
+    h3 { margin-top: 25px; color: #343a40; border-bottom: 2px solid #007bff; padding-bottom: 5px; font-size: 1.2em; }
+    label { display: block; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+    input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #80bdff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
 
-        * {
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
+    /* Mode Switcher Bar */
+    .mode-bar { display: flex; gap: 10px; margin-bottom: 20px; background: #e9ecef; padding: 6px; border-radius: 6px; }
+    .mode-btn { flex: 1; padding: 10px; border: none; background: transparent; font-size: 14px; font-weight: bold; color: #495057; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .mode-btn.active { background: white; color: #007bff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        body {
-            background-color: var(--hosp-bg);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 15px 10px;
-        }
+    /* Cards */
+    .item-card { background: #fdfdfd; border: 1px solid #e2e8f0; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
+    .item-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px; font-weight: bold; color: #007bff; }
 
-        .main-wrapper {
-            max-width: 960px;
-            margin: 0 auto;
-            background: var(--card-bg);
-            border-radius: 8px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            overflow: hidden;
-            border-top: 5px solid var(--hosp-primary);
-        }
+    /* Session Progress Card */
+    .session-banner { background: #e7f1ff; border: 1px solid #b8daff; border-left: 5px solid #007bff; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+    .progress-track { background: #cbd3da; border-radius: 6px; height: 10px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { background: #28a745; height: 100%; width: 0%; transition: width 0.3s; }
 
-        /* Standard Hospital Header */
-        .hospital-header {
-            padding: 18px 25px;
-            background: #ffffff;
-            border-bottom: 2px solid #e9ecef;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-        }
+    /* Scoring Pills */
+    .score-group { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .score-btn { padding: 8px 12px; border: 1px solid #ced4da; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
+    .score-btn.active { background: #007bff; color: white; border-color: #007bff; }
 
-        .header-brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
+    /* Buttons */
+    .btn-action { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-action:hover { background-color: #0056b3; }
+    .btn-secondary { background-color: #6c757d; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-secondary:hover { background-color: #5a6268; }
+    .btn-submit { background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 60%; font-weight: bold; }
+    .btn-submit:hover { background-color: #218838; }
+    .btn-danger { background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 40%; font-weight: bold; }
+    .btn-danger:hover { background-color: #c82333; }
 
-        .header-logo {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-        }
+    .action-btns { display: flex; gap: 15px; margin-top: 25px; }
 
-        .header-titles h1 {
-            margin: 0;
-            font-size: 18px;
-            color: var(--hosp-primary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 800;
-        }
+    /* Modal */
+    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+    .modal-content { background-color: #fefefe; margin: auto; padding: 25px; width: 90%; max-width: 550px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 
-        .header-titles h2 {
-            margin: 3px 0 0 0;
-            font-size: 13.5px;
-            color: var(--hosp-secondary);
-            font-weight: 600;
-        }
+    #message-area { margin-top: 20px; padding: 12px; border-radius: 4px; text-align: center; display: none; font-weight: bold; }
+    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .error { background-color: #ffe6e6; color: red; border: 1px solid red; }
 
-        .header-titles p {
-            margin: 2px 0 0 0;
-            font-size: 11.5px;
-            color: var(--text-muted);
-        }
-
-        .system-badge {
-            background: #e7f1ff;
-            color: var(--hosp-secondary);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 700;
-            border: 1px solid #b8daff;
-            text-align: right;
-            white-space: nowrap;
-        }
-
-        .content-body {
-            padding: 20px 25px;
-        }
-
-        /* Top Nav Modes */
-        .mode-switch-bar {
-            display: flex;
-            background: #e9ecef;
-            padding: 4px;
-            border-radius: 6px;
-            margin-bottom: 22px;
-        }
-
-        .mode-tab {
-            flex: 1;
-            border: none;
-            background: transparent;
-            padding: 10px;
-            font-size: 13.5px;
-            font-weight: 700;
-            color: #495057;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.2s;
-        }
-
-        .mode-tab.active {
-            background: #ffffff;
-            color: var(--hosp-primary);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 700;
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        input[type="text"], input[type="number"], select, textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 14px;
-            color: var(--text-dark);
-            background-color: #fff;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--hosp-secondary);
-            box-shadow: 0 0 0 3px rgba(0, 86, 179, 0.15);
-        }
-
-        .btn {
-            padding: 11px 18px;
-            border-radius: 5px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-
-        .btn-primary { background: var(--hosp-primary); color: #fff; }
-        .btn-secondary { background: #6c757d; color: #fff; }
-        .btn-accent { background: var(--hosp-accent); color: #fff; }
-        .btn-danger { background: var(--hosp-danger); color: #fff; }
-        .btn:hover { opacity: 0.92; }
-
-        /* Session Progress Bar */
-        .session-card {
-            background: #eef2f7;
-            border: 1px solid #d0dbe5;
-            border-left: 5px solid var(--hosp-primary);
-            border-radius: 6px;
-            padding: 15px 20px;
-            margin-bottom: 20px;
-        }
-
-        .session-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .progress-track {
-            background: #d6dfe8;
-            border-radius: 10px;
-            height: 12px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .progress-fill {
-            background: var(--hosp-accent);
-            height: 100%;
-            width: 0%;
-            transition: width 0.3s;
-        }
-
-        /* Criteria Question Card */
-        .audit-item-row {
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 14px 16px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
-
-        .audit-item-text {
-            flex: 3;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
-        .audit-item-cat {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--hosp-secondary);
-            text-transform: uppercase;
-            margin-bottom: 3px;
-        }
-
-        .audit-item-control {
-            flex: 1;
-            min-width: 140px;
-            text-align: right;
-        }
-
-        .score-pill-group {
-            display: flex;
-            gap: 5px;
-            justify-content: flex-end;
-        }
-
-        .score-btn {
-            padding: 7px 11px;
-            border: 1px solid var(--border-color);
-            background: #f8f9fa;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 13px;
-        }
-
-        .score-btn.active {
-            background: var(--hosp-primary);
-            color: #ffffff;
-            border-color: var(--hosp-primary);
-        }
-
-        .alert-box {
-            padding: 12px;
-            border-radius: 5px;
-            margin-top: 15px;
-            font-size: 13.5px;
-            font-weight: 600;
-            text-align: center;
-            display: none;
-        }
-
-        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .alert-info { background: #e2e3e5; color: #383d41; border: 1px solid #d6d8db; }
-
-        /* Modal for Finalization */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-            z-index: 9999;
-        }
-
-        .modal-dialog {
-            background: #fff;
-            max-width: 600px;
-            width: 100%;
-            border-radius: 8px;
-            padding: 22px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-            border-top: 4px solid var(--hosp-primary);
-        }
-
-        .modal-title {
-            margin-top: 0;
-            color: var(--hosp-primary);
-            font-size: 18px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 8px;
-        }
-
-        /* Hospital Footer */
-        .hospital-footer {
-            padding: 15px 25px;
-            background: #f8f9fa;
-            border-top: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        @media (max-width: 768px) {
-            .grid-2, .grid-3 { grid-template-columns: 1fr; }
-            .audit-item-row { flex-direction: column; align-items: flex-start; }
-            .audit-item-control { width: 100%; text-align: left; }
-            .score-pill-group { justify-content: flex-start; }
-            .hospital-header { flex-direction: column; text-align: center; }
-            .system-badge { text-align: center; }
-        }
-    </style>
+    .footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #ced4da; font-size: 0.8em; color: #6c757d; text-align: center; }
+  </style>
 </head>
 <body>
 
-<div class="main-wrapper">
-    
-    <!-- 1. STANDARD HOSPITAL HEADER -->
-    <header class="hospital-header">
-        <div class="header-brand">
-            <img class="header-logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Coat_of_arms_of_Malaysia.svg/300px-Coat_of_arms_of_Malaysia.svg.png" alt="MOH Logo">
-            <div class="header-titles">
-                <h1>HOSPITAL UMUM SARAWAK</h1>
-                <h2>DEPARTMENT OF NEPHROLOGY | HAEMODIALYSIS UNIT</h2>
-                <p>Clinical Governance & Quality Improvement Management System</p>
-            </div>
-        </div>
-        <div class="system-badge">
-            Module: Audit Runner<br>
-            <span style="font-weight: normal; font-size: 11px;">Bedside Data Engine</span>
-        </div>
-    </header>
+<div class="container">
+  <!-- Standard Header -->
+  <div class="header">
+    <img src="https://lh3.googleusercontent.com/d/1tCDAMimy_b0x9kRmWNyYMn4voR9Ynr0J" alt="Logo">
+    <h1>Clinical Audit Runner</h1>
+    <h2>Haemodialysis Unit, Sarawak General Hospital</h2>
+  </div>
 
-    <div class="content-body">
-        
-        <!-- STEP A: SESSION SELECTOR / SETUP VIEW -->
-        <div id="viewSetup">
-            <div class="mode-switch-bar">
-                <button type="button" class="mode-tab active" id="tabNewSess" onclick="switchRunnerMode('NEW')">➕ Start New Audit Session</button>
-                <button type="button" class="mode-tab" id="tabOngoingSess" onclick="switchRunnerMode('ONGOING')">📋 Resume Ongoing Session</button>
-            </div>
-
-            <!-- Start New Form -->
-            <form id="formNewSession">
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="newSelectAudit">Select Audit Template:</label>
-                        <select id="newSelectAudit" required>
-                            <option value="">-- Choose Registered Audit --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="newWardUnit">Ward / Unit Location:</label>
-                        <select id="newWardUnit" required>
-                            <option value="Haemodialysis Unit (Main)">Haemodialysis Unit (Main)</option>
-                            <option value="Acute HD Unit (ICU/CCU/HD)">Acute HD Unit (ICU/CCU/HD)</option>
-                            <option value="Self-Care Dialysis Centre">Self-Care Dialysis Centre</option>
-                            <option value="Satellite HD Unit Bau">Satellite HD Unit Bau</option>
-                            <option value="Satellite HD Unit Serian">Satellite HD Unit Serian</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-3">
-                    <div class="form-group">
-                        <label for="newAuditPeriod">Audit Period / Cycle:</label>
-                        <input type="text" id="newAuditPeriod" placeholder="e.g. 2026-SEP-OCT" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newTargetSamples">Target Samples:</label>
-                        <input type="number" id="newTargetSamples" value="20" min="1" max="50" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newCommitteePin">Committee PIN Code:</label>
-                        <input type="text" id="newCommitteePin" maxlength="6" placeholder="Enter PIN" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">🚀 Initialize Session & Start Logging</button>
-            </form>
-
-            <!-- Resume Ongoing View -->
-            <div id="panelOngoing" style="display: none;">
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="ongoingSelectSession">Select Active Session:</label>
-                        <select id="ongoingSelectSession">
-                            <option value="">-- Choose Ongoing Session --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="ongoingCommitteePin">Committee PIN Code:</label>
-                        <input type="text" id="ongoingCommitteePin" maxlength="6" placeholder="Enter Committee PIN">
-                    </div>
-                </div>
-                <button type="button" class="btn btn-accent" style="width: 100%;" onclick="resumeSelectedSession()">🔓 Unlock & Resume Session</button>
-            </div>
-        </div>
-
-        <!-- STEP B: ACTIVE AUDIT RUNNER LOGGING VIEW -->
-        <div id="viewRunner" style="display: none;">
-            
-            <!-- Live Session Status Card -->
-            <div class="session-card">
-                <div class="session-card-header">
-                    <div>
-                        <strong style="font-size: 16px; color: var(--hosp-primary);" id="dispAuditTitle">Audit Title</strong><br>
-                        <span style="font-size: 12.5px; color: #555;">Ward: <strong id="dispWard"></strong> | Period: <strong id="dispPeriod"></strong> | Session: <span id="dispSessionId" style="font-family: monospace;"></span></span>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="font-size: 13px; font-weight: 700;">Progress: <span id="dispSampleCount">0</span> / <span id="dispTargetCount">20</span> Samples</span>
-                    </div>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" id="dispProgressBar"></div>
-                </div>
-            </div>
-
-            <!-- Single Sample Entry Header -->
-            <div style="background: #fdfdfd; border: 1px solid #dee2e6; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px;">
-                <div class="grid-3">
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="curSampleNo">Logging Sample #:</label>
-                        <input type="number" id="curSampleNo" value="1" min="1" max="50" style="font-weight: 700;">
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="curAuditorName">Auditor Name:</label>
-                        <input type="text" id="curAuditorName" placeholder="e.g. PPP Ismail Hasimi" required>
-                    </div>
-                    <div class="form-group" style="margin-bottom: 0;">
-                        <label for="curBedRef">Bed / Station / Patient Ref:</label>
-                        <input type="text" id="curBedRef" placeholder="e.g. Station 04 / Acute Bay">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Criteria Scoring List -->
-            <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 15px; color: var(--hosp-primary); text-transform: uppercase;">Observation Criteria</h3>
-                <span style="font-size: 12px; color: var(--text-muted);">Points earned automatically calculated</span>
-            </div>
-
-            <div id="runnerCriteriaContainer">
-                <!-- Dynamically rendered question rows -->
-            </div>
-
-            <!-- Sample Action Controls -->
-            <div style="display: flex; gap: 12px; margin-top: 20px;">
-                <button type="button" class="btn btn-primary" style="flex: 2;" onclick="submitSampleEntry()">💾 Save Sample Data</button>
-                <button type="button" class="btn btn-danger" style="flex: 1;" id="btnFinalizeModal" onclick="openFinalizeModal()">🔒 Finalize Audit</button>
-            </div>
-
-            <div style="margin-top: 15px; text-align: center;">
-                <button type="button" class="btn btn-secondary" style="font-size: 12px; padding: 6px 12px;" onclick="exitToSetup()">⬅️ Exit to Session Selection</button>
-            </div>
-        </div>
-
-        <div id="alertBox" class="alert-box"></div>
+  <!-- Setup View -->
+  <div id="viewSetup">
+    <div class="mode-bar">
+      <button type="button" class="mode-btn active" id="tabNew" onclick="switchSetupMode('NEW')">➕ Start New Audit Session</button>
+      <button type="button" class="mode-btn" id="tabOngoing" onclick="switchSetupMode('ONGOING')">📋 Resume Ongoing Session</button>
     </div>
 
-    <!-- 3. STANDARD HOSPITAL FOOTER -->
-    <footer class="hospital-footer">
+    <!-- New Session Form -->
+    <form id="formNewSession">
+      <div class="grid-2">
         <div>
-            <strong>Haemodialysis Unit</strong> &bull; Sarawak General Hospital, Jalan Hospital, 93586 Kuching, Sarawak
+          <label for="newAuditSelect">Select Audit Template</label>
+          <select id="newAuditSelect" required>
+            <option value="">-- Loading Templates... --</option>
+          </select>
         </div>
         <div>
-            Clinical Governance Module &bull; Department Internal Use
+          <label for="newWardUnit">Ward / Unit Location</label>
+          <select id="newWardUnit" required>
+            <option value="Haemodialysis Unit (Main)">Haemodialysis Unit (Main)</option>
+            <option value="Acute HD Unit (ICU/CCU)">Acute HD Unit (ICU/CCU)</option>
+            <option value="Self-Care Dialysis Centre">Self-Care Dialysis Centre</option>
+            <option value="Satellite HD Unit Bau">Satellite HD Unit Bau</option>
+            <option value="Satellite HD Unit Serian">Satellite HD Unit Serian</option>
+          </select>
         </div>
-    </footer>
+      </div>
 
+      <div class="grid-3">
+        <div>
+          <label for="newAuditPeriod">Audit Period / Cycle</label>
+          <input type="text" id="newAuditPeriod" placeholder="e.g. 2026-SEP-OCT" required>
+        </div>
+        <div>
+          <label for="newTargetSamples">Target Samples</label>
+          <input type="number" id="newTargetSamples" value="20" min="1" max="50" required>
+        </div>
+        <div>
+          <label for="newCommitteePin">Committee PIN Code</label>
+          <input type="text" id="newCommitteePin" maxlength="6" placeholder="4-digit PIN" required>
+        </div>
+      </div>
+
+      <div class="action-btns">
+        <button type="submit" class="btn-submit" style="width: 100%;">Initialize Session & Start Logging</button>
+      </div>
+    </form>
+
+    <!-- Resume Ongoing Form -->
+    <div id="panelOngoing" style="display: none;">
+      <div class="grid-2">
+        <div>
+          <label for="ongoingSessionSelect">Select Active Ongoing Session</label>
+          <select id="ongoingSessionSelect">
+            <option value="">-- Choose Active Session --</option>
+          </select>
+        </div>
+        <div>
+          <label for="ongoingPin">Committee PIN Code</label>
+          <input type="text" id="ongoingPin" maxlength="6" placeholder="Enter PIN to Unlock">
+        </div>
+      </div>
+      <div class="action-btns">
+        <button type="button" class="btn-action" style="width: 100%;" onclick="resumeSession()">Unlock & Resume Logging</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bedside Runner View -->
+  <div id="viewRunner" style="display: none;">
+    <div class="session-banner">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+        <div>
+          <h3 style="margin: 0; color: #007bff; border: none; padding: 0;" id="dispTitle">Audit Title</h3>
+          <span style="font-size: 0.9em; color: #495057;">Ward: <b id="dispWard"></b> | Period: <b id="dispPeriod"></b> | ID: <span id="dispSessionId" style="font-family: monospace;"></span></span>
+        </div>
+        <div style="text-align: right; margin-top: 5px;">
+          <strong>Progress: <span id="dispCompleted">0</span> / <span id="dispTarget">20</span> Samples</strong>
+        </div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="dispProgressBar"></div>
+      </div>
+    </div>
+
+    <!-- Sample Meta Input Card -->
+    <div class="item-card">
+      <div class="grid-3">
+        <div>
+          <label for="curSampleNo">Logging Sample #</label>
+          <input type="number" id="curSampleNo" value="1" min="1" max="50" style="font-weight: bold;">
+        </div>
+        <div>
+          <label for="curAuditor">Auditor Name</label>
+          <input type="text" id="curAuditor" placeholder="e.g. SN Mary / PPP Ismail" required>
+        </div>
+        <div>
+          <label for="curBedRef">Bed / Station / Patient Ref</label>
+          <input type="text" id="curBedRef" placeholder="e.g. Station 04 / Bay A">
+        </div>
+      </div>
+    </div>
+
+    <h3>Observation Criteria</h3>
+    <div id="runnerCriteriaContainer"></div>
+
+    <div class="action-btns">
+      <button type="button" class="btn-submit" onclick="submitSample()">Save Sample Observation</button>
+      <button type="button" class="btn-danger" onclick="openFinalizeModal()">Finalize & Lock</button>
+    </div>
+
+    <div style="margin-top: 15px; text-align: center;">
+      <button type="button" class="btn-secondary" style="font-size: 0.85em; padding: 6px 12px;" onclick="exitToSetup()">⬅️ Back to Session Setup</button>
+    </div>
+  </div>
+
+  <div id="message-area"></div>
+
+  <!-- Standard Footer -->
+  <div class="footer">
+    &copy; Designed and developed by PPP Zulfadlie bin Janie<br>
+    for Haemodialysis Unit, Sarawak General Hospital
+  </div>
 </div>
 
-<!-- ================= MODAL: AUDIT FINALIZATION & SUMMARY ================= -->
-<div class="modal-overlay" id="finalizeModal">
-    <div class="modal-dialog">
-        <h3 class="modal-title">🏁 Finalize Audit Session Summary</h3>
-        <p style="font-size: 13px; color: #555; margin-top: 0;">Complete the qualitative clinical review to permanently lock this session.</p>
+<!-- Finalize Modal -->
+<div id="finalizeModal" class="modal">
+  <div class="modal-content">
+    <h3 style="margin-top:0; color:#007bff; border-bottom:2px solid #007bff; padding-bottom:5px;">Finalize Audit Session</h3>
+    <p style="font-size: 0.9em; color: #6c757d;">Complete qualitative review to permanently lock this audit session.</p>
+    
+    <label>Areas of Concern (Non-Compliances & Risks Observed)</label>
+    <textarea id="modalConcern" rows="3" placeholder="e.g. Hand hygiene omitted prior to cannulation..." required></textarea>
 
-        <div class="form-group">
-            <label for="modalConcern">⚠️ Areas of Concern (Non-compliances & Clinical Risks Observed):</label>
-            <textarea id="modalConcern" rows="3" placeholder="e.g. Hand hygiene not performed before direct patient contact; missing hourly intradialytic pressure records." required></textarea>
-        </div>
+    <label>Areas of Improvement / CAPA Action Plan</label>
+    <textarea id="modalImprovement" rows="3" placeholder="e.g. Enforce WHO 5 moments refresher..." required></textarea>
 
-        <div class="form-group">
-            <label for="modalImprovement">💡 Areas of Improvement / Corrective Action Plan (CAPA):</label>
-            <textarea id="modalImprovement" rows="3" placeholder="e.g. Conduct refresher training on WHO 5 moments; enforce hourly VP/TMP recording during dialysis." required></textarea>
-        </div>
+    <label>Confirm Committee PIN</label>
+    <input type="text" id="modalPin" maxlength="6" placeholder="Enter PIN to confirm lock" required>
 
-        <div class="form-group">
-            <label for="modalPin">Confirm Committee PIN:</label>
-            <input type="text" id="modalPin" maxlength="6" placeholder="Enter PIN to confirm lock" required>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button type="button" class="btn btn-secondary" style="flex: 1;" onclick="closeFinalizeModal()">Cancel</button>
-            <button type="button" class="btn btn-danger" style="flex: 2;" onclick="confirmFinalizeSession()">🔒 Lock & Submit Final Report</button>
-        </div>
+    <div class="action-btns" style="margin-top: 15px;">
+      <button type="button" class="btn-submit" style="width: 70%;" onclick="confirmFinalize()">Lock & Submit Report</button>
+      <button type="button" class="btn-secondary" style="width: 30%;" onclick="closeFinalizeModal()">Cancel</button>
     </div>
+  </div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx_YnzwVZI-7i1uuGw4NlWd_caAECT5qyfvlu8Yh7UhFCqvonaWNdLIkf3wdVV5quJT/exec";
+  const SCRIPT_API_URL = "https://script.google.com/macros/s/AKfycbx_YnzwVZI-7i1uuGw4NlWd_caAECT5qyfvlu8Yh7UhFCqvonaWNdLIkf3wdVV5quJT/exec";
 
-    // Active State Memory
-    let currentSession = null;
-    let currentTemplate = null;
+  let activeSession = null;
+  let activeTemplate = null;
 
-    function switchRunnerMode(mode) {
-        const tabNew = document.getElementById('tabNewSess');
-        const tabOngoing = document.getElementById('tabOngoingSess');
-        const formNew = document.getElementById('formNewSession');
-        const panelOngoing = document.getElementById('panelOngoing');
+  window.onload = function() {
+    loadAuditTemplates();
+  };
 
-        if (mode === 'NEW') {
-            tabNew.classList.add('active');
-            tabOngoing.classList.remove('active');
-            formNew.style.display = 'block';
-            panelOngoing.style.display = 'none';
-        } else {
-            tabOngoing.classList.add('active');
-            tabNew.classList.remove('active');
-            formNew.style.display = 'none';
-            panelOngoing.style.display = 'block';
-            fetchActiveSessions();
-        }
+  function switchSetupMode(mode) {
+    const tabNew = document.getElementById('tabNew');
+    const tabOngoing = document.getElementById('tabOngoing');
+    const formNew = document.getElementById('formNewSession');
+    const panelOngoing = document.getElementById('panelOngoing');
+
+    if (mode === 'NEW') {
+      tabNew.classList.add('active');
+      tabOngoing.classList.remove('active');
+      formNew.style.display = 'block';
+      panelOngoing.style.display = 'none';
+    } else {
+      tabOngoing.classList.add('active');
+      tabNew.classList.remove('active');
+      formNew.style.display = 'none';
+      panelOngoing.style.display = 'block';
+      fetchActiveSessions();
     }
+  }
 
-    // 1. Fetch Registered Templates for New Session
-    function fetchTemplates() {
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'getAuditList' })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const sel = document.getElementById('newSelectAudit');
-                sel.innerHTML = '<option value="">-- Choose Registered Audit --</option>';
-                data.audits.forEach(a => {
-                    const opt = document.createElement('option');
-                    opt.value = a.auditId;
-                    opt.textContent = `${a.auditTitle} (${a.auditId})`;
-                    opt.dataset.title = a.auditTitle;
-                    opt.dataset.target = a.sampleCount;
-                    sel.appendChild(opt);
-                });
-            }
+  function loadAuditTemplates() {
+    fetch(SCRIPT_API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "getAuditList" })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        const sel = document.getElementById('newAuditSelect');
+        sel.innerHTML = '<option value="">-- Choose Registered Template --</option>';
+        res.audits.forEach(a => {
+          const opt = document.createElement('option');
+          opt.value = a.auditId;
+          opt.textContent = `${a.auditTitle} (${a.auditId})`;
+          opt.dataset.title = a.auditTitle;
+          opt.dataset.target = a.sampleCount;
+          sel.appendChild(opt);
         });
-    }
-
-    document.getElementById('newSelectAudit').addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
-        if (opt && opt.dataset.target) {
-            document.getElementById('newTargetSamples').value = opt.dataset.target;
-        }
+      }
     });
+  }
 
-    // 2. Fetch Active Ongoing Sessions
-    function fetchActiveSessions() {
-        showAlert("Loading active audit sessions...", "info");
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'getActiveSessions', payload: {} })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                hideAlert();
-                const sel = document.getElementById('ongoingSelectSession');
-                sel.innerHTML = '<option value="">-- Choose Ongoing Session --</option>';
-                data.sessions.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.sessionId;
-                    opt.textContent = `[${s.completedSamples}/${s.targetSamples}] ${s.auditTitle} - ${s.wardUnit} (${s.auditPeriod})`;
-                    opt.dataset.auditid = s.auditId;
-                    sel.appendChild(opt);
-                });
-            } else {
-                showAlert("Error: " + data.error, "danger");
-            }
-        })
-        .catch(err => showAlert("Connection error: " + err, "danger"));
+  document.getElementById('newAuditSelect').addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    if (opt && opt.dataset.target) {
+      document.getElementById('newTargetSamples').value = opt.dataset.target;
     }
+  });
 
-    // 3. Start New Session Submission
-    document.getElementById('formNewSession').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const auditSelect = document.getElementById('newSelectAudit');
-        const auditId = auditSelect.value;
-        const auditTitle = auditSelect.options[auditSelect.selectedIndex].dataset.title || "Audit";
-        const ward = document.getElementById('newWardUnit').value;
-        const period = document.getElementById('newAuditPeriod').value.trim();
-        const target = document.getElementById('newTargetSamples').value;
-        const pin = document.getElementById('newCommitteePin').value.trim();
-
-        showAlert("Authenticating with Committee PIN & Initializing Session...", "info");
-
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                action: 'startAuditSession',
-                payload: {
-                    auditId: auditId,
-                    auditTitle: auditTitle,
-                    wardUnit: ward,
-                    auditPeriod: period,
-                    targetSamples: target,
-                    committeePin: pin
-                }
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                hideAlert();
-                loadRunnerInterface(data.sessionId, auditId, pin);
-            } else {
-                showAlert("Failed: " + data.error, "danger");
-            }
-        })
-        .catch(err => showAlert("Connection error: " + err, "danger"));
-    });
-
-    // 4. Resume Ongoing Session
-    function resumeSelectedSession() {
-        const sel = document.getElementById('ongoingSelectSession');
-        const sessionId = sel.value;
-        const pin = document.getElementById('ongoingCommitteePin').value.trim();
-
-        if (!sessionId) {
-            alert("Please pick an active session.");
-            return;
-        }
-        if (!pin) {
-            alert("Please input the Committee PIN.");
-            return;
-        }
-
-        const auditId = sel.options[sel.selectedIndex].dataset.auditid;
-        loadRunnerInterface(sessionId, auditId, pin);
-    }
-
-    // 5. Load Session & Questions into Bedside Runner
-    function loadRunnerInterface(sessionId, auditId, pin) {
-        showAlert("Loading criteria questions and session history...", "info");
-
-        Promise.all([
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'getSessionDetails', payload: { sessionId: sessionId } })
-            }).then(r => r.json()),
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'getAuditQuestions', payload: { auditId: auditId } })
-            }).then(r => r.json())
-        ])
-        .then(([sessRes, qRes]) => {
-            if (!sessRes.success) throw new Error(sessRes.error);
-            if (!qRes.success) throw new Error(qRes.error);
-
-            hideAlert();
-
-            currentSession = sessRes.sessionMeta;
-            currentSession.committeePin = pin; // Store validated PIN in memory
-            currentSession.loggedSamples = sessRes.loggedSamples || [];
-            currentTemplate = qRes;
-
-            // Render Header Status
-            document.getElementById('dispAuditTitle').innerText = currentSession.auditTitle;
-            document.getElementById('dispWard').innerText = currentSession.wardUnit;
-            document.getElementById('dispPeriod').innerText = currentSession.auditPeriod;
-            document.getElementById('dispSessionId').innerText = currentSession.sessionId;
-            document.getElementById('dispTargetCount').innerText = currentSession.targetSamples;
-
-            updateProgressVisuals();
-
-            // Next sample suggestion
-            const nextSample = (currentSession.completedSamples || 0) + 1;
-            document.getElementById('curSampleNo').value = Math.min(nextSample, currentSession.targetSamples);
-
-            // Render Questions List
-            renderCriteriaList(qRes.questions, qRes.meta.scoringType);
-
-            // Toggle Views
-            document.getElementById('viewSetup').style.display = 'none';
-            document.getElementById('viewRunner').style.display = 'block';
-        })
-        .catch(err => showAlert("Initialization Error: " + err.message, "danger"));
-    }
-
-    function renderCriteriaList(questions, scoringType) {
-        const container = document.getElementById('runnerCriteriaContainer');
-        container.innerHTML = "";
-
-        questions.forEach((q, idx) => {
-            const row = document.createElement('div');
-            row.className = 'audit-item-row';
-            row.id = `qRow_${idx}`;
-            row.dataset.max = q.maxScore;
-
-            let controlHtml = "";
-            if (scoringType === "YES_NO_NA") {
-                controlHtml = `
-                    <div class="score-pill-group">
-                        <button type="button" class="score-btn" onclick="setScore(${idx}, ${q.maxScore}, this)">Yes</button>
-                        <button type="button" class="score-btn" onclick="setScore(${idx}, 0, this)">No</button>
-                        <button type="button" class="score-btn" onclick="setScore(${idx}, 'NA', this)">N/A</button>
-                    </div>
-                `;
-            } else if (scoringType === "SCALE_0_5") {
-                controlHtml = `
-                    <div class="score-pill-group">
-                        ${[0, 1, 2, 3, 4, 5].map(pt => `<button type="button" class="score-btn" onclick="setScore(${idx}, ${pt}, this)">${pt}</button>`).join('')}
-                    </div>
-                `;
-            } else {
-                // Weighted / Custom
-                controlHtml = `
-                    <input type="number" class="score-input" min="0" max="${q.maxScore}" value="${q.maxScore}" style="width: 80px; text-align: center; font-weight: bold;" id="scoreInput_${idx}">
-                `;
-            }
-
-            row.innerHTML = `
-                <div class="audit-item-text">
-                    <div class="audit-item-cat">${q.category} &bull; Max: ${q.maxScore} pt</div>
-                    <strong>${q.itemNo}:</strong> ${q.questionText}
-                </div>
-                <div class="audit-item-control" id="controlBox_${idx}">
-                    ${controlHtml}
-                </div>
-            `;
-            container.appendChild(row);
+  function fetchActiveSessions() {
+    showMessage("Loading active sessions...", "normal");
+    fetch(SCRIPT_API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "getActiveSessions", payload: {} })
+    })
+    .then(res => res.json())
+    .then(res => {
+      hideMessage();
+      if (res.success) {
+        const sel = document.getElementById('ongoingSessionSelect');
+        sel.innerHTML = '<option value="">-- Choose Active Session --</option>';
+        res.sessions.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.sessionId;
+          opt.textContent = `[${s.completedSamples}/${s.targetSamples}] ${s.auditTitle} - ${s.wardUnit} (${s.auditPeriod})`;
+          opt.dataset.auditid = s.auditId;
+          sel.appendChild(opt);
         });
+      }
+    });
+  }
+
+  document.getElementById('formNewSession').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const sel = document.getElementById('newAuditSelect');
+    const auditId = sel.value;
+    const auditTitle = sel.options[sel.selectedIndex].dataset.title || "Audit";
+    const ward = document.getElementById('newWardUnit').value;
+    const period = document.getElementById('newAuditPeriod').value.trim();
+    const target = document.getElementById('newTargetSamples').value;
+    const pin = document.getElementById('newCommitteePin').value.trim();
+
+    showMessage("Authenticating & Initializing Session...", "normal");
+
+    fetch(SCRIPT_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "startAuditSession",
+        payload: { auditId, auditTitle, wardUnit: ward, auditPeriod: period, targetSamples: target, committeePin: pin }
+      })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        hideMessage();
+        loadRunner(res.sessionId, auditId, pin);
+      } else {
+        showMessage("Failed: " + res.error, "error");
+      }
+    })
+    .catch(err => showMessage("Error: " + err, "error"));
+  });
+
+  function resumeSession() {
+    const sel = document.getElementById('ongoingSessionSelect');
+    const sessionId = sel.value;
+    const pin = document.getElementById('ongoingPin').value.trim();
+
+    if (!sessionId || !pin) {
+      alert("Please select an active session and enter the PIN.");
+      return;
+    }
+    const auditId = sel.options[sel.selectedIndex].dataset.auditid;
+    loadRunner(sessionId, auditId, pin);
+  }
+
+  function loadRunner(sessionId, auditId, pin) {
+    showMessage("Loading criteria questions...", "normal");
+
+    Promise.all([
+      fetch(SCRIPT_API_URL, { method: "POST", body: JSON.stringify({ action: "getSessionDetails", payload: { sessionId } }) }).then(r => r.json()),
+      fetch(SCRIPT_API_URL, { method: "POST", body: JSON.stringify({ action: "getAuditQuestions", payload: { auditId } }) }).then(r => r.json())
+    ])
+    .then(([sessRes, qRes]) => {
+      if (!sessRes.success) throw new Error(sessRes.error);
+      if (!qRes.success) throw new Error(qRes.error);
+
+      hideMessage();
+      activeSession = sessRes.sessionMeta;
+      activeSession.committeePin = pin;
+      activeSession.loggedSamples = sessRes.loggedSamples || [];
+      activeTemplate = qRes;
+
+      document.getElementById('dispTitle').textContent = activeSession.auditTitle;
+      document.getElementById('dispWard').textContent = activeSession.wardUnit;
+      document.getElementById('dispPeriod').textContent = activeSession.auditPeriod;
+      document.getElementById('dispSessionId').textContent = activeSession.sessionId;
+      document.getElementById('dispTarget').textContent = activeSession.targetSamples;
+
+      updateProgress();
+
+      const nextNo = (activeSession.completedSamples || 0) + 1;
+      document.getElementById('curSampleNo').value = Math.min(nextNo, activeSession.targetSamples);
+
+      renderCriteria(qRes.questions, qRes.meta.scoringType);
+
+      document.getElementById('viewSetup').style.display = 'none';
+      document.getElementById('viewRunner').style.display = 'block';
+    })
+    .catch(err => showMessage("Error: " + err.message, "error"));
+  }
+
+  function renderCriteria(questions, scoringType) {
+    const container = document.getElementById('runnerCriteriaContainer');
+    container.innerHTML = "";
+
+    questions.forEach((q, idx) => {
+      const card = document.createElement('div');
+      card.className = "item-card";
+      card.id = `qCard_${idx}`;
+
+      let controls = "";
+      if (scoringType === "YES_NO_NA") {
+        controls = `
+          <div class="score-group">
+            <button type="button" class="score-btn" onclick="setScore(${idx}, 'Yes', this)">Yes</button>
+            <button type="button" class="score-btn" onclick="setScore(${idx}, 'No', this)">No</button>
+            <button type="button" class="score-btn" onclick="setScore(${idx}, 'NA', this)">N/A</button>
+          </div>
+        `;
+      } else {
+        controls = `
+          <div class="score-group">
+            ${[0,1,2,3,4,5].map(pt => `<button type="button" class="score-btn" onclick="setScore(${idx}, ${pt}, this)">${pt}</button>`).join('')}
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="item-card-header">
+          <span>${q.itemNo}: ${q.category} (Max: ${q.maxScore} pt)</span>
+        </div>
+        <div style="margin-bottom: 10px; font-size: 14px;">${q.questionText}</div>
+        <div id="controlBox_${idx}" data-max="${q.maxScore}">
+          ${controls}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function setScore(qIdx, val, btn) {
+    const box = document.getElementById(`controlBox_${qIdx}`);
+    box.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    box.dataset.selectedVal = val;
+  }
+
+  function submitSample() {
+    const sampleNo = document.getElementById('curSampleNo').value;
+    const auditor = document.getElementById('curAuditor').value.trim();
+    const bedRef = document.getElementById('curBedRef').value.trim();
+
+    if (!auditor) {
+      alert("Please enter Auditor Name.");
+      return;
     }
 
-    function setScore(questionIdx, val, btnEl) {
-        const parent = document.getElementById(`controlBox_${questionIdx}`);
-        const btns = parent.querySelectorAll('.score-btn');
-        btns.forEach(b => b.classList.remove('active'));
-        btnEl.classList.add('active');
-        parent.dataset.selectedVal = val;
+    const questions = activeTemplate.questions;
+    const scores = {};
+    let earned = 0, max = 0;
+
+    for (let i = 0; i < questions.length; i++) {
+      const box = document.getElementById(`controlBox_${i}`);
+      const val = box.dataset.selectedVal;
+      const qMax = parseFloat(questions[i].maxScore) || 5;
+
+      if (val === undefined) {
+        alert(`Please score question ${questions[i].itemNo}`);
+        return;
+      }
+
+      if (val === "NA" || val === "No") {
+        scores[questions[i].itemNo] = val === "NA" ? "N/A" : 0;
+        if (val === "Yes") earned += qMax;
+      } else {
+        const num = parseFloat(val) || 0;
+        scores[questions[i].itemNo] = num;
+        earned += num;
+      }
+      max += qMax;
     }
 
-    // 6. Save Sample Observation Entry
-    function submitSampleEntry() {
-        const sampleNo = document.getElementById('curSampleNo').value;
-        const auditor = document.getElementById('curAuditorName').value.trim();
-        const bedRef = document.getElementById('curBedRef').value.trim();
+    showMessage("Saving sample to Google Sheets...", "normal");
 
-        if (!auditor) {
-            alert("Please input Auditor Name.");
-            return;
+    fetch(SCRIPT_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "saveAuditSample",
+        payload: {
+          sessionId: activeSession.sessionId,
+          auditId: activeSession.auditId,
+          committeePin: activeSession.committeePin,
+          sampleNo, auditorName: auditor, staffId: "STAFF",
+          bedPatientRef: bedRef || "Ward Bed",
+          scores, earnedPoints: earned, maxPoints: max
         }
+      })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        showMessage(`Sample #${sampleNo} successfully saved!`, "success");
+        activeSession.completedSamples = (activeSession.completedSamples || 0) + 1;
+        updateProgress();
 
-        const scoringType = currentTemplate.meta.scoringType;
-        const questions = currentTemplate.questions;
-        const scores = {};
-        let earnedTotal = 0;
-        let maxTotal = 0;
-
-        for (let i = 0; i < questions.length; i++) {
-            const max = parseFloat(questions[i].maxScore) || 5;
-            let val = null;
-
-            if (scoringType === "WEIGHTED") {
-                const inp = document.getElementById(`scoreInput_${i}`);
-                val = parseFloat(inp.value) || 0;
-            } else {
-                const box = document.getElementById(`controlBox_${i}`);
-                val = box.dataset.selectedVal;
-            }
-
-            if (val === undefined || val === null) {
-                alert(`Please score question ${questions[i].itemNo} before saving.`);
-                return;
-            }
-
-            if (val === "NA") {
-                scores[questions[i].itemNo] = "N/A";
-            } else {
-                const numericScore = parseFloat(val) || 0;
-                scores[questions[i].itemNo] = numericScore;
-                earnedTotal += numericScore;
-                maxTotal += max;
-            }
+        if (parseInt(sampleNo, 10) < parseInt(activeSession.targetSamples, 10)) {
+          document.getElementById('curSampleNo').value = parseInt(sampleNo, 10) + 1;
         }
+      } else {
+        showMessage("Error: " + res.error, "error");
+      }
+    });
+  }
 
-        showAlert(`Saving Sample #${sampleNo} to Google Sheets...`, "info");
+  function updateProgress() {
+    const comp = activeSession.completedSamples || 0;
+    const target = activeSession.targetSamples || 20;
+    document.getElementById('dispCompleted').textContent = comp;
+    const pct = Math.min(100, Math.round((comp / target) * 100));
+    document.getElementById('dispProgressBar').style.width = pct + "%";
+  }
 
-        const payload = {
-            sessionId: currentSession.sessionId,
-            auditId: currentSession.auditId,
-            committeePin: currentSession.committeePin,
-            sampleNo: sampleNo,
-            auditorName: auditor,
-            staffId: "AUDITOR",
-            bedPatientRef: bedRef || "Ward Bed",
-            scores: scores,
-            earnedPoints: earnedTotal,
-            maxPoints: maxTotal
-        };
+  function openFinalizeModal() {
+    document.getElementById('finalizeModal').style.display = 'flex';
+    document.getElementById('modalPin').value = activeSession.committeePin || "";
+  }
 
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({ action: 'saveAuditSample', payload: payload })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                showAlert(`✅ Sample ${sampleNo} recorded successfully!`, "success");
-                currentSession.completedSamples = (currentSession.completedSamples || 0) + 1;
-                updateProgressVisuals();
+  function closeFinalizeModal() {
+    document.getElementById('finalizeModal').style.display = 'none';
+  }
 
-                // Increment sample counter if not at target
-                if (parseInt(sampleNo, 10) < parseInt(currentSession.targetSamples, 10)) {
-                    document.getElementById('curSampleNo').value = parseInt(sampleNo, 10) + 1;
-                } else {
-                    showAlert(`🎯 All ${currentSession.targetSamples} samples completed! Click Finalize Audit to submit.`, "success");
-                }
-            } else {
-                showAlert("Save Failed: " + data.error, "danger");
-            }
-        })
-        .catch(err => showAlert("Connection error: " + err, "danger"));
+  function confirmFinalize() {
+    const concern = document.getElementById('modalConcern').value.trim();
+    const improvement = document.getElementById('modalImprovement').value.trim();
+    const pin = document.getElementById('modalPin').value.trim();
+
+    if (!concern || !improvement) {
+      alert("Please fill in both Areas of Concern and Areas of Improvement.");
+      return;
     }
 
-    function updateProgressVisuals() {
-        const comp = currentSession.completedSamples || 0;
-        const target = currentSession.targetSamples || 20;
-        document.getElementById('dispSampleCount').innerText = comp;
-        const pct = Math.min(100, Math.round((comp / target) * 100));
-        document.getElementById('dispProgressBar').style.width = pct + "%";
-    }
+    showMessage("Locking session...", "normal");
 
-    // 7. Finalize Modal & Lock Engine
-    function openFinalizeModal() {
-        document.getElementById('finalizeModal').style.display = 'flex';
-        document.getElementById('modalPin').value = currentSession.committeePin || "";
-    }
+    fetch(SCRIPT_API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "finalizeSession",
+        payload: { sessionId: activeSession.sessionId, auditId: activeSession.auditId, committeePin: pin, areasOfConcern: concern, areasOfImprovement: improvement }
+      })
+    })
+    .then(res => res.json())
+    .then(res => {
+      if (res.success) {
+        closeFinalizeModal();
+        alert("Session successfully finalized and locked!");
+        exitToSetup();
+      } else {
+        alert("Rejected: " + res.error);
+        hideMessage();
+      }
+    });
+  }
 
-    function closeFinalizeModal() {
-        document.getElementById('finalizeModal').style.display = 'none';
-    }
+  function exitToSetup() {
+    document.getElementById('viewRunner').style.display = 'none';
+    document.getElementById('viewSetup').style.display = 'block';
+    hideMessage();
+    switchSetupMode('NEW');
+    loadAuditTemplates();
+  }
 
-    function confirmFinalizeSession() {
-        const concern = document.getElementById('modalConcern').value.trim();
-        const improvement = document.getElementById('modalImprovement').value.trim();
-        const pin = document.getElementById('modalPin').value.trim();
+  function showMessage(text, type) {
+    const msg = document.getElementById('message-area');
+    msg.style.display = "block";
+    msg.textContent = text;
+    msg.className = type === "error" ? "error" : "success";
+  }
 
-        if (!concern || !improvement) {
-            alert("Please complete both Areas of Concern and Areas of Improvement.");
-            return;
-        }
-
-        showAlert("Finalizing session and locking records...", "info");
-
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                action: 'finalizeSession',
-                payload: {
-                    sessionId: currentSession.sessionId,
-                    auditId: currentSession.auditId,
-                    committeePin: pin,
-                    areasOfConcern: concern,
-                    areasOfImprovement: improvement
-                }
-            })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                closeFinalizeModal();
-                alert("Audit Session has been finalized and permanently locked! You will now be returned to the main screen.");
-                exitToSetup();
-            } else {
-                alert("Finalize Rejected: " + data.error);
-                hideAlert();
-            }
-        })
-        .catch(err => showAlert("Connection error: " + err, "danger"));
-    }
-
-    function exitToSetup() {
-        document.getElementById('viewRunner').style.display = 'none';
-        document.getElementById('viewSetup').style.display = 'block';
-        hideAlert();
-        fetchActiveSessions();
-    }
-
-    function showAlert(msg, type) {
-        const box = document.getElementById('alertBox');
-        box.style.display = 'block';
-        box.innerText = msg;
-        box.className = 'alert-box ' + (type === 'success' ? 'alert-success' : (type === 'danger' ? 'alert-danger' : 'alert-info'));
-    }
-
-    function hideAlert() {
-        document.getElementById('alertBox').style.display = 'none';
-    }
-
-    window.onload = function() {
-        fetchTemplates();
-    };
+  function hideMessage() {
+    document.getElementById('message-area').style.display = "none";
+  }
 </script>
 
 </body>
