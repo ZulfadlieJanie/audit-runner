@@ -48,14 +48,17 @@
     .btn-danger { background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 40%; font-weight: bold; }
     .btn-danger:hover { background-color: #c82333; }
 
+    /* Blurred Button State when samples reach target */
+    .btn-blurred { opacity: 0.45; filter: blur(0.6px); cursor: not-allowed !important; pointer-events: none; }
+
     .action-btns { display: flex; gap: 15px; margin-top: 25px; }
 
-    /* Modal */
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-    .modal-content { background-color: #fefefe; margin: auto; padding: 25px; width: 90%; max-width: 550px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    /* Modals */
+    .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+    .modal-content { background-color: #fefefe; margin: auto; padding: 25px 30px; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.25); text-align: center; }
+    .tick-icon { width: 60px; height: 60px; background-color: #d4edda; color: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 15px auto; }
 
     #message-area { margin-top: 20px; padding: 12px; border-radius: 4px; text-align: center; display: none; font-weight: bold; }
-    .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .error { background-color: #ffe6e6; color: red; border: 1px solid red; }
 
     .footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #ced4da; font-size: 0.8em; color: #6c757d; text-align: center; }
@@ -70,21 +73,19 @@
 <body>
 
 <div class="container">
-  <!-- Standard Header -->
   <div class="header">
     <img src="https://lh3.googleusercontent.com/d/1tCDAMimy_b0x9kRmWNyYMn4voR9Ynr0J" alt="Logo">
     <h1>Clinical Audit Runner</h1>
     <h2>Haemodialysis Unit, Sarawak General Hospital</h2>
   </div>
 
-  <!-- Setup View -->
   <div id="viewSetup">
     <div class="mode-bar">
       <button type="button" class="mode-btn active" id="tabNew" onclick="switchSetupMode('NEW')">➕ Start New Audit Session</button>
       <button type="button" class="mode-btn" id="tabOngoing" onclick="switchSetupMode('ONGOING')">📋 Resume Ongoing Session</button>
     </div>
 
-    <!-- New Session Form -->
+    <!-- Start New Session -->
     <form id="formNewSession">
       <div class="grid-2">
         <div>
@@ -97,10 +98,8 @@
           <label for="newWardUnit">Ward / Unit Location</label>
           <select id="newWardUnit" required>
             <option value="Haemodialysis Unit (Main)">Haemodialysis Unit (Main)</option>
-            <option value="Acute HD Unit (ICU/CCU)">Acute HD Unit (ICU/CCU)</option>
-            <option value="Self-Care Dialysis Centre">Self-Care Dialysis Centre</option>
-            <option value="Satellite HD Unit Bau">Satellite HD Unit Bau</option>
-            <option value="Satellite HD Unit Serian">Satellite HD Unit Serian</option>
+            <option value="Acute HD Unit (ICU/CCU)">Acute HD in ICU / ICU 2 / MCCU / Pead ICU</option>
+            <option value="Self-Care Dialysis Centre">Acute HD in Wards</option>
           </select>
         </div>
       </div>
@@ -125,7 +124,7 @@
       </div>
     </form>
 
-    <!-- Resume Ongoing Form -->
+    <!-- Resume Ongoing Session -->
     <div id="panelOngoing" style="display: none;">
       <div class="grid-2">
         <div>
@@ -145,7 +144,7 @@
     </div>
   </div>
 
-  <!-- Bedside Runner View -->
+  <!-- Bedside Runner Form -->
   <div id="viewRunner" style="display: none;">
     <div class="session-banner">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -164,7 +163,6 @@
       </div>
     </div>
 
-    <!-- Sample Meta Input Card -->
     <div class="item-card">
       <div class="grid-3">
         <div>
@@ -187,7 +185,7 @@
 
     <div class="action-btns">
       <button type="button" class="btn-submit" id="btnSaveSample" onclick="submitSample()">Save Sample Observation</button>
-      <button type="button" class="btn-danger" onclick="openFinalizeModal()">Finalize & Lock</button>
+      <button type="button" class="btn-danger" id="btnFinalize" onclick="openFinalizeModal()">Finalize Audit</button>
     </div>
 
     <div style="margin-top: 15px; text-align: center;">
@@ -197,18 +195,27 @@
 
   <div id="message-area"></div>
 
-  <!-- Standard Footer -->
   <div class="footer">
     &copy; Designed and developed by PPP Zulfadlie bin Janie<br>
     for Haemodialysis Unit, Sarawak General Hospital
   </div>
 </div>
 
-<!-- Finalize Modal -->
-<div id="finalizeModal" class="modal">
+<!-- Success Popup Modal with Tick Symbol -->
+<div id="runnerSuccessModal" class="modal">
   <div class="modal-content">
+    <div class="tick-icon">✓</div>
+    <h3 style="margin-top: 0; color: #28a745; border: none; justify-content: center; padding: 0;">Audit saved successfully</h3>
+    <p id="runnerSampleMsg" style="font-size: 14px; color: #495057; margin: 10px 0 20px 0;"></p>
+    <button type="button" class="btn-submit" style="width: 100%;" onclick="closeRunnerSuccessModal()">OK</button>
+  </div>
+</div>
+
+<!-- Finalize Session Modal -->
+<div id="finalizeModal" class="modal">
+  <div class="modal-content" style="text-align: left;">
     <h3 style="margin-top:0; color:#007bff; border-bottom:2px solid #007bff; padding-bottom:5px;">Finalize Audit Session</h3>
-    <p style="font-size: 0.9em; color: #6c757d;">Complete qualitative review to permanently lock this audit session.</p>
+    <p style="font-size: 0.9em; color: #6c757d;">Complete qualitative review to permanently lock this audit session[cite: 1].</p>
     
     <label>Areas of Concern (Non-Compliances & Risks Observed)</label>
     <textarea id="modalConcern" rows="3" placeholder="e.g. Hand hygiene omitted prior to cannulation..." required></textarea>
@@ -281,7 +288,7 @@
         });
       }
     })
-    .catch(err => showMessage("Failed to load audit list: " + err, "error"));
+    .catch(err => showMessage("Failed to load templates: " + err, "error"));
   }
 
   document.getElementById('newAuditSelect').addEventListener('change', function() {
@@ -292,7 +299,7 @@
   });
 
   function fetchActiveSessions() {
-    showMessage("Loading active sessions from database...", "normal");
+    showMessage("Loading active sessions...", "normal");
     fetch(SCRIPT_API_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -321,7 +328,7 @@
           sel.innerHTML = '<option value="">-- No Active In-Progress Sessions Found --</option>';
         }
       } else {
-        showMessage("Error loading sessions: " + res.error, "error");
+        showMessage("Error: " + res.error, "error");
       }
     })
     .catch(err => showMessage("Connection error: " + err, "error"));
@@ -344,7 +351,7 @@
 
     const initBtn = document.getElementById('btnInitSession');
     initBtn.disabled = true;
-    initBtn.textContent = "Authenticating PIN & Initializing...";
+    initBtn.textContent = "Authenticating PIN...";
 
     fetch(SCRIPT_API_URL, {
       method: "POST",
@@ -383,18 +390,12 @@
       return;
     }
     if (!pin) {
-      alert("Please enter the Committee PIN to unlock this session.");
+      alert("Please enter the Committee PIN.");
       return;
     }
 
-    const selectedOption = sel.options[sel.selectedIndex];
-    const auditId = selectedOption.getAttribute('data-audit-id');
-
-    if (!auditId) {
-      alert("Could not identify Audit ID for this session.");
-      return;
-    }
-
+    const opt = sel.options[sel.selectedIndex];
+    const auditId = opt.getAttribute('data-audit-id');
     loadRunner(sessionId, auditId, pin);
   }
 
@@ -430,7 +431,7 @@
       document.getElementById('dispTarget').textContent = activeSession.targetSamples;
       document.getElementById('dispComplianceTarget').textContent = (qRes.meta.targetCompliance || 90) + "%";
 
-      updateProgress();
+      updateProgressAndControls();
 
       const nextNo = (activeSession.completedSamples || 0) + 1;
       document.getElementById('curSampleNo').value = Math.min(nextNo, activeSession.targetSamples);
@@ -523,7 +524,7 @@
       }
 
       if (val === undefined || val === null) {
-        alert(`Please score question ${questions[i].itemNo} before saving.`);
+        alert(`Please score question ${questions[i].itemNo}`);
         return;
       }
 
@@ -566,18 +567,19 @@
       saveBtn.textContent = "Save Sample Observation";
 
       if (res.success) {
-        showMessage(`Sample #${sampleNo} recorded successfully!`, "success");
         activeSession.completedSamples = (activeSession.completedSamples || 0) + 1;
-        updateProgress();
+        updateProgressAndControls();
 
-        // Clear button highlights
+        // Trigger Success Modal with Tick
+        document.getElementById('runnerSampleMsg').textContent = `Sample #${sampleNo} has been successfully recorded.`;
+        document.getElementById('runnerSuccessModal').style.display = "flex";
+
+        // Reset inputs
         document.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('#runnerCriteriaContainer [id^="controlBox_"]').forEach(b => delete b.dataset.selectedVal);
 
         if (parseInt(sampleNo, 10) < parseInt(activeSession.targetSamples, 10)) {
           document.getElementById('curSampleNo').value = parseInt(sampleNo, 10) + 1;
-        } else {
-          showMessage(`🎯 All ${activeSession.targetSamples} samples logged! Click Finalize & Lock to complete.`, "success");
         }
       } else {
         showMessage("Save Error: " + res.error, "error");
@@ -590,12 +592,34 @@
     });
   }
 
-  function updateProgress() {
-    const comp = activeSession.completedSamples || 0;
-    const target = activeSession.targetSamples || 20;
+  function closeRunnerSuccessModal() {
+    document.getElementById('runnerSuccessModal').style.display = "none";
+  }
+
+  // Blurs Save button and highlights Finalize when samples reach target
+  function updateProgressAndControls() {
+    const comp = parseInt(activeSession.completedSamples || 0, 10);
+    const target = parseInt(activeSession.targetSamples || 20, 10);
+    
     document.getElementById('dispCompleted').textContent = comp;
     const pct = Math.min(100, Math.round((comp / target) * 100));
     document.getElementById('dispProgressBar').style.width = pct + "%";
+
+    const saveBtn = document.getElementById('btnSaveSample');
+    const finalBtn = document.getElementById('btnFinalize');
+
+    if (comp >= target) {
+      saveBtn.classList.add('btn-blurred');
+      saveBtn.setAttribute('disabled', 'true');
+      finalBtn.style.width = "100%";
+      finalBtn.textContent = "🎯 Target Reached - Finalize Audit";
+    } else {
+      saveBtn.classList.remove('btn-blurred');
+      saveBtn.removeAttribute('disabled');
+      saveBtn.style.width = "60%";
+      finalBtn.style.width = "40%";
+      finalBtn.textContent = "Finalize Audit";
+    }
   }
 
   function openFinalizeModal() {
