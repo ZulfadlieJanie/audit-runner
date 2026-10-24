@@ -38,20 +38,39 @@
     .score-btn { padding: 8px 12px; border: 1px solid #ced4da; background: #f8f9fa; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 13px; }
     .score-btn.active { background: #007bff; color: white; border-color: #007bff; }
 
-    /* Buttons */
+    /* Standard Buttons */
     .btn-action { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-action:hover { background-color: #0056b3; }
     .btn-secondary { background-color: #6c757d; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .btn-secondary:hover { background-color: #5a6268; }
-    .btn-submit { background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 60%; font-weight: bold; }
+    .btn-submit { background-color: #28a745; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 60%; font-weight: bold; transition: all 0.3s ease; }
     .btn-submit:hover { background-color: #218838; }
-    .btn-danger { background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 40%; font-weight: bold; }
+    .btn-danger { background-color: #dc3545; color: white; padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; width: 40%; font-weight: bold; transition: all 0.3s ease; }
     .btn-danger:hover { background-color: #c82333; }
 
-    /* Blurred Button State when samples reach target */
-    .btn-blurred { opacity: 0.45; filter: blur(0.6px); cursor: not-allowed !important; pointer-events: none; }
+    /* Progressive Blur & Disabled Button States */
+    .btn-blurred-disabled {
+      opacity: 0.35 !important;
+      filter: blur(0.8px) !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      user-select: none !important;
+    }
 
-    .action-btns { display: flex; gap: 15px; margin-top: 25px; }
+    /* Active Highlighted Finalize Button State */
+    .btn-finalize-active {
+      background-color: #28a745 !important;
+      color: white !important;
+      font-weight: bold !important;
+      animation: pulse-green 1.5s infinite alternate;
+    }
+
+    @keyframes pulse-green {
+      from { box-shadow: 0 0 0 rgba(40, 167, 69, 0.4); }
+      to { box-shadow: 0 0 10px rgba(40, 167, 69, 0.8); }
+    }
+
+    .action-btns { display: flex; gap: 15px; margin-top: 25px; align-items: center; }
 
     /* Modals */
     .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
@@ -85,7 +104,7 @@
       <button type="button" class="mode-btn" id="tabOngoing" onclick="switchSetupMode('ONGOING')">📋 Resume Ongoing Session</button>
     </div>
 
-    <!-- Start New Session -->
+    <!-- Start New Session Form -->
     <form id="formNewSession">
       <div class="grid-2">
         <div>
@@ -98,8 +117,10 @@
           <label for="newWardUnit">Ward / Unit Location</label>
           <select id="newWardUnit" required>
             <option value="Haemodialysis Unit (Main)">Haemodialysis Unit (Main)</option>
-            <option value="Acute HD Unit (ICU/CCU)">Acute HD in ICU / ICU 2 / MCCU / Pead ICU</option>
-            <option value="Self-Care Dialysis Centre">Acute HD in Wards</option>
+            <option value="Acute HD Unit (ICU/CCU)">Acute HD Unit (ICU/CCU)</option>
+            <option value="Self-Care Dialysis Centre">Self-Care Dialysis Centre</option>
+            <option value="Satellite HD Unit Bau">Satellite HD Unit Bau</option>
+            <option value="Satellite HD Unit Serian">Satellite HD Unit Serian</option>
           </select>
         </div>
       </div>
@@ -124,7 +145,7 @@
       </div>
     </form>
 
-    <!-- Resume Ongoing Session -->
+    <!-- Resume Ongoing Session Form -->
     <div id="panelOngoing" style="display: none;">
       <div class="grid-2">
         <div>
@@ -171,11 +192,11 @@
         </div>
         <div>
           <label for="curAuditor">Auditor Name</label>
-          <input type="text" id="curAuditor" placeholder="e.g. SN Mary / PPP Ismail" required>
+          <input type="text" id="curAuditor" placeholder="e.g. SN Tia / PPP Johnny" required>
         </div>
         <div>
-          <label for="curBedRef">Bed / Station / Patient Ref</label>
-          <input type="text" id="curBedRef" placeholder="e.g. Station 04 / Bay A">
+          <label for="curBedRef">Bed & Ward / Machine No</label>
+          <input type="text" id="curBedRef" placeholder="e.g. HD04 or ICU Bed 1">
         </div>
       </div>
     </div>
@@ -201,7 +222,7 @@
   </div>
 </div>
 
-<!-- Success Popup Modal with Tick Symbol -->
+<!-- Success Confirmation Modal with Tick -->
 <div id="runnerSuccessModal" class="modal">
   <div class="modal-content">
     <div class="tick-icon">✓</div>
@@ -215,7 +236,7 @@
 <div id="finalizeModal" class="modal">
   <div class="modal-content" style="text-align: left;">
     <h3 style="margin-top:0; color:#007bff; border-bottom:2px solid #007bff; padding-bottom:5px;">Finalize Audit Session</h3>
-    <p style="font-size: 0.9em; color: #6c757d;">Complete qualitative review to permanently lock this audit session[cite: 1].</p>
+    <p style="font-size: 0.9em; color: #6c757d;">Complete qualitative review to permanently lock this audit session.</p>
     
     <label>Areas of Concern (Non-Compliances & Risks Observed)</label>
     <textarea id="modalConcern" rows="3" placeholder="e.g. Hand hygiene omitted prior to cannulation..." required></textarea>
@@ -431,6 +452,7 @@
       document.getElementById('dispTarget').textContent = activeSession.targetSamples;
       document.getElementById('dispComplianceTarget').textContent = (qRes.meta.targetCompliance || 90) + "%";
 
+      // Instantly evaluate progress & progressive blur
       updateProgressAndControls();
 
       const nextNo = (activeSession.completedSamples || 0) + 1;
@@ -568,13 +590,15 @@
 
       if (res.success) {
         activeSession.completedSamples = (activeSession.completedSamples || 0) + 1;
+        
+        // Re-evaluate button lock & progressive blur states immediately
         updateProgressAndControls();
 
-        // Trigger Success Modal with Tick
+        // Display Success Modal with Tick Symbol
         document.getElementById('runnerSampleMsg').textContent = `Sample #${sampleNo} has been successfully recorded.`;
         document.getElementById('runnerSuccessModal').style.display = "flex";
 
-        // Reset inputs
+        // Reset criterion button selections
         document.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('#runnerCriteriaContainer [id^="controlBox_"]').forEach(b => delete b.dataset.selectedVal);
 
@@ -596,7 +620,7 @@
     document.getElementById('runnerSuccessModal').style.display = "none";
   }
 
-  // Blurs Save button and highlights Finalize when samples reach target
+  // Enforces progressive blur: Finalize locked until target reached; Save locked after target reached
   function updateProgressAndControls() {
     const comp = parseInt(activeSession.completedSamples || 0, 10);
     const target = parseInt(activeSession.targetSamples || 20, 10);
@@ -608,17 +632,30 @@
     const saveBtn = document.getElementById('btnSaveSample');
     const finalBtn = document.getElementById('btnFinalize');
 
-    if (comp >= target) {
-      saveBtn.classList.add('btn-blurred');
-      saveBtn.setAttribute('disabled', 'true');
-      finalBtn.style.width = "100%";
-      finalBtn.textContent = "🎯 Target Reached - Finalize Audit";
-    } else {
-      saveBtn.classList.remove('btn-blurred');
+    if (comp < target) {
+      // 1. SAMPLES NOT REACHED: Finalize is blurred & locked
+      saveBtn.classList.remove('btn-blurred-disabled');
       saveBtn.removeAttribute('disabled');
-      saveBtn.style.width = "60%";
-      finalBtn.style.width = "40%";
-      finalBtn.textContent = "Finalize Audit";
+      saveBtn.style.display = "block";
+      saveBtn.style.width = "70%";
+      saveBtn.textContent = "Save Sample Observation";
+
+      finalBtn.classList.add('btn-blurred-disabled');
+      finalBtn.classList.remove('btn-finalize-active');
+      finalBtn.setAttribute('disabled', 'true');
+      finalBtn.style.width = "30%";
+      finalBtn.textContent = `Finalize (${comp}/${target})`;
+    } else {
+      // 2. TARGET REACHED: Save retired/hidden, Finalize unlocked in glowing green
+      saveBtn.classList.add('btn-blurred-disabled');
+      saveBtn.setAttribute('disabled', 'true');
+      saveBtn.style.display = "none";
+
+      finalBtn.classList.remove('btn-blurred-disabled');
+      finalBtn.classList.add('btn-finalize-active');
+      finalBtn.removeAttribute('disabled');
+      finalBtn.style.width = "100%";
+      finalBtn.textContent = `🎯 Target Reached (${comp}/${target}) - Finalize & Lock Audit`;
     }
   }
 
